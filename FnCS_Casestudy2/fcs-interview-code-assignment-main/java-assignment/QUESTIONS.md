@@ -27,24 +27,24 @@ I would standardize on the repository + domain/use-case pattern, because it clea
 
 **Answer:**
 ```
-Advantages of Open API approach
+**Advantages of Open API approach**
 
 1. Single source of truth (clear API contract) – everyone uses the same definition of endpoints, inputs, outputs, and auth.
 2. Auto docs + easier onboarding – interactive documentation makes it faster to understand and use the API.
 3. Validation/testing support – schema-based validation and contract tests catch breaking changes early.
 
-Disadvantages of Open API approach
+**Disadvantages of Open API approach**
 
 1. Maintenance burden – if you don’t keep it updated, it becomes misleading.
 2. Verbose/complex specs – large APIs create big files that are hard to manage manually.
 3. Doesn’t capture everything / awkward cases – some behaviors (streaming/events, deep unions, business rules) don’t fit neatly, and generated SDKs may still need manual improvement.
 
-Advantages of traditional approach
+**Advantages of traditional approach**
 1. Fast to start (minimal setup)
 2. Flexible (easy to describe special behaviors in plain text)
 3. Less tooling overhead (no spec file to maintain)
 
-Disadvantages of Open API approach
+**Disadvantages of Open API approach**
 1. Docs drift easily (implementation changes, docs don’t)
 2. Harder integrations (less precise contract, more back-and-forth)
 3. Less automation (no guaranteed validation/contract tests, limited code generation)
