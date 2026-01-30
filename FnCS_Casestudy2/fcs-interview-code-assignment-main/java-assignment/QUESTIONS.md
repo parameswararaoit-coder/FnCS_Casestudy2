@@ -27,24 +27,24 @@ I would standardize on the repository + domain/use-case pattern, because it clea
 
 **Answer:**
 ```
-<pre><strong>Advantages of Open API approach</strong></pre>
+**`Advantages of Open API approach`**
 
 1. Single source of truth (clear API contract) – everyone uses the same definition of endpoints, inputs, outputs, and auth.
 2. Auto docs + easier onboarding – interactive documentation makes it faster to understand and use the API.
 3. Validation/testing support – schema-based validation and contract tests catch breaking changes early.
 
-<pre><strong>Disadvantages of Open API approach</strong></pre>
+<pre><strong>Disadvantages of Open API approach`**
 
 1. Maintenance burden – if you don’t keep it updated, it becomes misleading.
 2. Verbose/complex specs – large APIs create big files that are hard to manage manually.
 3. Doesn’t capture everything / awkward cases – some behaviors (streaming/events, deep unions, business rules) don’t fit neatly, and generated SDKs may still need manual improvement.
 
-<pre><strong>Advantages of traditional approach</strong></pre>
+<pre><strong>Advantages of traditional approach`**
 1. Fast to start (minimal setup)
 2. Flexible (easy to describe special behaviors in plain text)
 3. Less tooling overhead (no spec file to maintain)
 
-<pre><strong>Disadvantages of Open API approach</strong></pre>
+<pre><strong>Disadvantages of Open API approach`**
 1. Docs drift easily (implementation changes, docs don’t)
 2. Harder integrations (less precise contract, more back-and-forth)
 3. Less automation (no guaranteed validation/contract tests, limited code generation)
@@ -63,35 +63,35 @@ To balance thorough testing with time and resource constraints, I would prioriti
 
 I’d primarily use TDD for critical business logic, where backend developers write a small failing test first for each key rule such as validations, permissions, state transitions, and error scenarios. This ensures correctness early and allows safe refactoring.
 
-<pre><strong>Testing priorities would be:</strong></pre>
+<pre><strong>Testing priorities would be:`**
 
-<pre><strong>Unit tests (highest priority)</strong></pre>
+<pre><strong>Unit tests (highest priority)`**
 
 1. Focus on business rules, domain logic, and use cases
 2. Fast to run and cheap to maintain
 3. Written using TDD wherever possible
 
-<pre><strong>Integration tests (selective but essential)</strong></pre>
+<pre><strong>Integration tests (selective but essential)`**
 
 1.Cover database interactions, repositories, and external integrations
 2. Validate mappings, transactions, and persistence behavior
 
-<pre><strong>API / contract tests</strong></pre>
+<pre><strong>API / contract tests`**
 
 1. Ensure REST APIs behave correctly and do not break consumers
 2. Especially important in microservices environments
 
-<pre><strong>End-to-end tests (minimal but critical paths only)</strong></pre>
+<pre><strong>End-to-end tests (minimal but critical paths only)`**
 
 1. Used only for core user journeys due to higher cost and slower execution
 
-<pre><strong>Pros of this approach:</strong></pre>
+<pre><strong>Pros of this approach:`**
 
 1. Fewer bugs and regressions
 2. Clearer requirements (tests act as living documentation)
 3. Safer refactoring and more stable APIs over time
 
-<pre><strong>Trade-offs:</strong></pre>
+<pre><strong>Trade-offs:`**
 
 Slightly slower development initially due to writing tests first
 
