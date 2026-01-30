@@ -4,16 +4,16 @@ import java.time.LocalDateTime;
 
 public class Warehouse {
 
-  // unique identifier
-  public String businessUnitCode;
+    // unique identifier
+    public String businessUnitCode;
 
-  public String location;
+    public String location;
 
-  public Integer capacity;
+    public Integer capacity;
 
-  public Integer stock;
+    public Integer stock;
 
-  public LocalDateTime createdAt;
+    public LocalDateTime createdAt;
 
-  public LocalDateTime archivedAt;
+    public LocalDateTime archivedAt;
 }

@@ -4,20 +4,29 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.WebApplicationException;
+
+import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class ArchiveWarehouseUseCase implements ArchiveWarehouseOperation {
 
-  private final WarehouseStore warehouseStore;
+    private final WarehouseStore warehouseStore;
 
-  public ArchiveWarehouseUseCase(WarehouseStore warehouseStore) {
-    this.warehouseStore = warehouseStore;
-  }
+    public ArchiveWarehouseUseCase(WarehouseStore warehouseStore) {
+        this.warehouseStore = warehouseStore;
+    }
 
-  @Override
-  public void archive(Warehouse warehouse) {
-    // TODO implement this method
+    @Override
+    public void archive(Warehouse warehouse) {
+        if (warehouse == null) {
+            throw new WebApplicationException("Warehouse was not provided.", 422);
+        }
+        if (warehouse.archivedAt != null) {
+            throw new WebApplicationException("Warehouse is already archived.", 409);
+        }
 
-    warehouseStore.update(warehouse);
-  }
+        warehouse.archivedAt = LocalDateTime.now();
+        warehouseStore.update(warehouse);
+    }
 }
