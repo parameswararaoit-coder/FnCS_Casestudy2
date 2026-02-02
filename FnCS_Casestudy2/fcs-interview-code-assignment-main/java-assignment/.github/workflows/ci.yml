@@ -1,17 +1,19 @@
-name: CI
+name: Java Assignment CI
 
 on:
   push:
-    branches: [ "**" ]
+    paths:
+      - "FnCS_Casestudy2/fcs-interview-code-assignment-main/java-assignment/**"
   pull_request:
-    branches: [ "**" ]
+    paths:
+      - "FnCS_Casestudy2/fcs-interview-code-assignment-main/java-assignment/**"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -21,12 +23,6 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build and run tests
+      - name: Build & test Java assignment
+        working-directory: FnCS_Casestudy2/fcs-interview-code-assignment-main/java-assignment
         run: mvn -B clean verify
-
-      - name: Upload test coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-report
-          path: target/site/jacoco
