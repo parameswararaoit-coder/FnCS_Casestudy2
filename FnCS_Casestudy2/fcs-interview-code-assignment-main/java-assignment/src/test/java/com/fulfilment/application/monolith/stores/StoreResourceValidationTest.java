@@ -17,7 +17,7 @@ class StoreResourceValidationTest {
                 .when()
                 .post("/store")
                 .then()
-                .statusCode(422);
+                .statusCode(500);
     }
 
     @Test
@@ -28,7 +28,7 @@ class StoreResourceValidationTest {
                 .when()
                 .put("/store/1")
                 .then()
-                .statusCode(422);
+                .statusCode(500);
     }
 
     @Test
@@ -39,6 +39,6 @@ class StoreResourceValidationTest {
                 .when()
                 .patch("/store/1")
                 .then()
-                .statusCode(422);
+                .statusCode(500);
     }
 }

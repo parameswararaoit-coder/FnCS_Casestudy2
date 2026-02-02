@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.warehouses.domain.usecases;
 
+import com.fulfilment.application.monolith.warehouses.domain.exception.*;
 import com.fulfilment.application.monolith.warehouses.domain.models.Location;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.LocationResolver;
@@ -46,149 +47,98 @@ class CreateWarehouseUseCaseTest {
         existing.businessUnitCode = "BU1";
         store.warehouses.add(existing);
 
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(store, resolverNYC());
+
+        Warehouse incoming = validWarehouse("BU1");
+
+        assertThrows(
+                WarehouseAlreadyExistsException.class,
+                () -> useCase.create(incoming)
         );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
-
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU1";
-        incoming.location = "NYC";
-        incoming.capacity = 100;
-        incoming.stock = 10;
-
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(409, exception.getResponse().getStatus());
     }
 
     @Test
     void rejectsWhenCapacityBelowStock() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(new InMemoryWarehouseStore(), resolverNYC());
 
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU1";
-        incoming.location = "NYC";
+        Warehouse incoming = validWarehouse("BU1");
         incoming.capacity = 10;
         incoming.stock = 50;
 
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(409, exception.getResponse().getStatus());
+        assertThrows(
+                CapacityBelowStockException.class,
+                () -> useCase.create(incoming)
+        );
     }
 
     @Test
     void rejectsWhenMaxWarehousesReached() {
         InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        Warehouse existing = new Warehouse();
-        existing.businessUnitCode = "BU1";
-        existing.location = "NYC";
-        existing.capacity = 100;
-        existing.stock = 10;
-        store.warehouses.add(existing);
+        store.warehouses.add(validWarehouse("BU1"));
 
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 1, 500))
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(
+                        store,
+                        new MapLocationResolver(Map.of("NYC", new Location("NYC", 1, 500)))
+                );
+
+        Warehouse incoming = validWarehouse("BU2");
+
+        assertThrows(
+                MaxWarehousesReachedException.class,
+                () -> useCase.create(incoming)
         );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
-
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU2";
-        incoming.location = "NYC";
-        incoming.capacity = 100;
-        incoming.stock = 10;
-
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(409, exception.getResponse().getStatus());
     }
 
     @Test
     void rejectsMissingRequestBody() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(new InMemoryWarehouseStore(), resolverNYC());
+
+        assertThrows(
+                WarehouseValidationException.class,
+                () -> useCase.create(null)
         );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
-
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(null));
-
-        assertEquals(422, exception.getResponse().getStatus());
     }
 
     @Test
     void rejectsMissingRequiredFields() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(new InMemoryWarehouseStore(), resolverNYC());
 
-        Warehouse missingBusinessUnitCode = new Warehouse();
-        missingBusinessUnitCode.businessUnitCode = " ";
-        missingBusinessUnitCode.location = "NYC";
-        missingBusinessUnitCode.capacity = 10;
-        missingBusinessUnitCode.stock = 1;
+        Warehouse missingBu = validWarehouse(" ");
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(missingBu));
 
-        WebApplicationException buException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(missingBusinessUnitCode));
-        assertEquals(422, buException.getResponse().getStatus());
-
-        Warehouse missingLocation = new Warehouse();
-        missingLocation.businessUnitCode = "BU1";
+        Warehouse missingLocation = validWarehouse("BU1");
         missingLocation.location = " ";
-        missingLocation.capacity = 10;
-        missingLocation.stock = 1;
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(missingLocation));
 
-        WebApplicationException locationException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(missingLocation));
-        assertEquals(422, locationException.getResponse().getStatus());
+        Warehouse missingCapacity = validWarehouse("BU2");
+        missingCapacity.capacity = null;
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(missingCapacity));
 
-        Warehouse missingCapacity = new Warehouse();
-        missingCapacity.businessUnitCode = "BU2";
-        missingCapacity.location = "NYC";
-        missingCapacity.stock = 1;
-
-        WebApplicationException capacityException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(missingCapacity));
-        assertEquals(422, capacityException.getResponse().getStatus());
-
-        Warehouse missingStock = new Warehouse();
-        missingStock.businessUnitCode = "BU3";
-        missingStock.location = "NYC";
-        missingStock.capacity = 10;
-
-        WebApplicationException stockException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(missingStock));
-        assertEquals(422, stockException.getResponse().getStatus());
+        Warehouse missingStock = validWarehouse("BU3");
+        missingStock.stock = null;
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(missingStock));
     }
 
     @Test
     void rejectsInvalidLocation() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(
+                        new InMemoryWarehouseStore(),
+                        new MapLocationResolver(Map.of("NYC", new Location("NYC", 3, 500)))
+                );
 
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU1";
+        Warehouse incoming = validWarehouse("BU1");
         incoming.location = "MISSING";
-        incoming.capacity = 100;
-        incoming.stock = 10;
 
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(422, exception.getResponse().getStatus());
+        assertThrows(
+                InvalidWarehouseLocationException.class,
+                () -> useCase.create(incoming)
+        );
     }
 
     @Test
@@ -220,79 +170,54 @@ class CreateWarehouseUseCaseTest {
 
     @Test
     void rejectsCapacityExceedingLocationLimit() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 100))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(
+                        new InMemoryWarehouseStore(),
+                        new MapLocationResolver(Map.of("NYC", new Location("NYC", 3, 100)))
+                );
 
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU1";
-        incoming.location = "NYC";
+        Warehouse incoming = validWarehouse("BU1");
         incoming.capacity = 150;
-        incoming.stock = 10;
 
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(409, exception.getResponse().getStatus());
+        assertThrows(
+                CapacityExceedsLocationLimitException.class,
+                () -> useCase.create(incoming)
+        );
     }
 
     @Test
     void rejectsWhenTotalCapacityWouldExceedLocation() {
         InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        Warehouse existing = new Warehouse();
-        existing.businessUnitCode = "BU1";
-        existing.location = "NYC";
+        Warehouse existing = validWarehouse("BU1");
         existing.capacity = 450;
-        existing.stock = 10;
         store.warehouses.add(existing);
 
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(store, resolverNYC());
 
-        Warehouse incoming = new Warehouse();
-        incoming.businessUnitCode = "BU2";
-        incoming.location = "NYC";
+        Warehouse incoming = validWarehouse("BU2");
         incoming.capacity = 100;
-        incoming.stock = 10;
 
-        WebApplicationException exception = assertThrows(WebApplicationException.class,
-                () -> useCase.create(incoming));
-
-        assertEquals(409, exception.getResponse().getStatus());
+        assertThrows(
+                LocationCapacityExceededException.class,
+                () -> useCase.create(incoming)
+        );
     }
 
     @Test
     void rejectsInvalidCapacityOrStockValues() {
-        InMemoryWarehouseStore store = new InMemoryWarehouseStore();
-        LocationResolver resolver = new MapLocationResolver(
-                Map.of("NYC", new Location("NYC", 3, 500))
-        );
-        CreateWarehouseUseCase useCase = new CreateWarehouseUseCase(store, resolver);
+        CreateWarehouseUseCase useCase =
+                new CreateWarehouseUseCase(new InMemoryWarehouseStore(), resolverNYC());
 
-        Warehouse invalidCapacity = new Warehouse();
-        invalidCapacity.businessUnitCode = "BU1";
-        invalidCapacity.location = "NYC";
+        Warehouse invalidCapacity = validWarehouse("BU1");
         invalidCapacity.capacity = 0;
-        invalidCapacity.stock = 10;
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(invalidCapacity));
 
-        WebApplicationException capacityException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(invalidCapacity));
-        assertEquals(422, capacityException.getResponse().getStatus());
-
-        Warehouse invalidStock = new Warehouse();
-        invalidStock.businessUnitCode = "BU2";
-        invalidStock.location = "NYC";
-        invalidStock.capacity = 10;
+        Warehouse invalidStock = validWarehouse("BU2");
         invalidStock.stock = -1;
-
-        WebApplicationException stockException = assertThrows(WebApplicationException.class,
-                () -> useCase.create(invalidStock));
-        assertEquals(422, stockException.getResponse().getStatus());
+        assertThrows(WarehouseValidationException.class, () -> useCase.create(invalidStock));
     }
+
 
     private static final class MapLocationResolver implements LocationResolver {
 
@@ -347,4 +272,20 @@ class CreateWarehouseUseCaseTest {
             return findByBusinessUnitCode(buCode);
         }
     }
+
+    private Warehouse validWarehouse(String bu) {
+        Warehouse w = new Warehouse();
+        w.businessUnitCode = bu;
+        w.location = "NYC";
+        w.capacity = 100;
+        w.stock = 10;
+        return w;
+    }
+
+    private LocationResolver resolverNYC() {
+        return new MapLocationResolver(
+                Map.of("NYC", new Location("NYC", 3, 500))
+        );
+    }
+
 }

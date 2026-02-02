@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.fulfilment;
 
+import com.fulfilment.application.monolith.api.exception.*;
 import com.fulfilment.application.monolith.products.Product;
 import com.fulfilment.application.monolith.stores.Store;
 import com.fulfilment.application.monolith.warehouses.adapters.database.DbWarehouse;
@@ -7,7 +8,6 @@ import com.fulfilment.application.monolith.warehouses.adapters.database.Warehous
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.ws.rs.WebApplicationException;
 
 import java.time.LocalDateTime;
 
@@ -21,52 +21,60 @@ public class FulfilmentService {
     @Inject
     EntityManager em;
 
-    public FulfilmentResponse assign(Long storeId, Long productId, String warehouseBuCode) {
+    public FulfilmentResponse assign(
+            Long storeId, Long productId, String warehouseBuCode) {
+
         validateInputs(storeId, productId, warehouseBuCode);
 
         Store store = Store.findById(storeId);
         if (store == null) {
-            throw new WebApplicationException("Store not found: " + storeId, 404);
+            throw new StoreNotFoundException(storeId);
         }
 
         Product product = em.find(Product.class, productId);
         if (product == null) {
-            throw new WebApplicationException("Product not found: " + productId, 404);
+            throw new ProductNotFoundException(productId);
         }
 
-        DbWarehouse warehouse = warehouseRepository.findActiveDbByBusinessUnitCode(warehouseBuCode);
+        DbWarehouse warehouse =
+                warehouseRepository.findActiveDbByBusinessUnitCode(warehouseBuCode);
         if (warehouse == null) {
-            throw new WebApplicationException("Active warehouse not found: " + warehouseBuCode, 404);
+            throw new WarehouseNotFoundException(warehouseBuCode);
         }
 
         Long warehouseId = warehouse.id;
 
-        // Duplicate assignment (keep strict + explicit)
+        // Duplicate assignment
         if (repo.existsAssignment(storeId, productId, warehouseId)) {
-            throw new WebApplicationException("Assignment already exists.", 409);
+            throw new AssignmentAlreadyExistsException();
         }
 
-        // Constraint 1: Each Product can be fulfilled by max 2 Warehouses per Store
-        long whCountForStoreProduct = repo.countDistinctWarehousesForStoreProduct(storeId, productId);
+        // Constraint 1: max 2 warehouses per store-product
+        long whCountForStoreProduct =
+                repo.countDistinctWarehousesForStoreProduct(storeId, productId);
         if (whCountForStoreProduct >= 2) {
-            throw new WebApplicationException("A product can be fulfilled by max 2 warehouses per store.", 409);
+            throw new MaxWarehousesPerStoreProductExceededException();
         }
 
-        // Constraint 2: Each Store can be fulfilled by max 3 different Warehouses
-        boolean warehouseAlreadyForStore = repo.isWarehouseAlreadyUsedByStore(storeId, warehouseId);
+        // Constraint 2: max 3 warehouses per store
+        boolean warehouseAlreadyForStore =
+                repo.isWarehouseAlreadyUsedByStore(storeId, warehouseId);
         if (!warehouseAlreadyForStore) {
-            long distinctWhForStore = repo.countDistinctWarehousesForStore(storeId);
+            long distinctWhForStore =
+                    repo.countDistinctWarehousesForStore(storeId);
             if (distinctWhForStore >= 3) {
-                throw new WebApplicationException("A store can be fulfilled by max 3 warehouses.", 409);
+                throw new MaxWarehousesPerStoreExceededException();
             }
         }
 
-        // Constraint 3: Each Warehouse can store max 5 types of Products
-        boolean productAlreadyForWarehouse = repo.isProductAlreadyUsedByWarehouse(warehouseId, productId);
+        // Constraint 3: max 5 product types per warehouse
+        boolean productAlreadyForWarehouse =
+                repo.isProductAlreadyUsedByWarehouse(warehouseId, productId);
         if (!productAlreadyForWarehouse) {
-            long distinctProductsForWarehouse = repo.countDistinctProductsForWarehouse(warehouseId);
+            long distinctProductsForWarehouse =
+                    repo.countDistinctProductsForWarehouse(warehouseId);
             if (distinctProductsForWarehouse >= 5) {
-                throw new WebApplicationException("A warehouse can fulfil max 5 product types.", 409);
+                throw new MaxProductsPerWarehouseExceededException();
             }
         }
 
@@ -74,22 +82,31 @@ public class FulfilmentService {
                 new Fulfilment(storeId, productId, warehouseId, LocalDateTime.now());
         repo.persist(assignment);
 
-        return new FulfilmentResponse(storeId, productId, warehouseBuCode.trim(), assignment.createdAt);
+        return new FulfilmentResponse(
+                storeId,
+                productId,
+                warehouseBuCode.trim(),
+                assignment.createdAt);
     }
 
-    private void validateInputs(Long storeId, Long productId, String warehouseBuCode) {
+    private void validateInputs(
+            Long storeId, Long productId, String warehouseBuCode) {
+
         if (storeId == null || storeId <= 0) {
-            throw new WebApplicationException("storeId is invalid.", 422);
+            throw new InvalidInputException("storeId is invalid.");
         }
         if (productId == null || productId <= 0) {
-            throw new WebApplicationException("productId is invalid.", 422);
+            throw new InvalidInputException("productId is invalid.");
         }
         if (warehouseBuCode == null || warehouseBuCode.isBlank()) {
-            throw new WebApplicationException("warehouseBuCode is invalid.", 422);
+            throw new InvalidInputException("warehouseBuCode is invalid.");
         }
     }
 
     public record FulfilmentResponse(
-            Long storeId, Long productId, String warehouseBusinessUnitCode, LocalDateTime createdAt) {
+            Long storeId,
+            Long productId,
+            String warehouseBusinessUnitCode,
+            LocalDateTime createdAt) {
     }
 }

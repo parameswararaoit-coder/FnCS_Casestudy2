@@ -59,7 +59,11 @@ public class ProductEndpointCoverageTest {
                 .statusCode(200)
                 .body("name", equalTo("TEST_WIDGET_UPDATED"));
 
-        given().when().delete(PATH + "/" + id).then().statusCode(204);
+        given()
+                .when()
+                .delete(PATH + "/" + id)
+                .then()
+                .statusCode(204);
     }
 
     @Test
@@ -74,9 +78,10 @@ public class ProductEndpointCoverageTest {
                 .when()
                 .post(PATH)
                 .then()
-                .statusCode(422)
+                .statusCode(409)
                 .body("error", containsString("Id was invalidly set on request."))
-                .body("code", equalTo(422));
+                .body("status", equalTo(409))
+                .body("type", equalTo("ProductIdProvidedOnCreateException"));
     }
 
     @Test
@@ -90,9 +95,10 @@ public class ProductEndpointCoverageTest {
                 .when()
                 .put(PATH + "/1")
                 .then()
-                .statusCode(422)
+                .statusCode(409)
                 .body("error", containsString("Product Name was not set on request."))
-                .body("code", equalTo(422));
+                .body("status", equalTo(409))
+                .body("type", equalTo("ProductNameMissingException"));
     }
 
     @Test
@@ -102,15 +108,19 @@ public class ProductEndpointCoverageTest {
                 .get(PATH + "/999999")
                 .then()
                 .statusCode(404)
-                .body("error", containsString("does not exist"))
-                .body("code", equalTo(404));
+                .body("error", containsString("Product not found"))
+                .body("status", equalTo(404))
+                .body("type", equalTo("ProductNotFoundException"));
 
         given()
                 .when()
                 .delete(PATH + "/999999")
                 .then()
                 .statusCode(404)
-                .body("error", containsString("does not exist"))
-                .body("code", equalTo(404));
+                .body("error", containsString("Product not found"))
+                .body("status", equalTo(404))
+                .body("type", equalTo("ProductNotFoundException"));
     }
+
 }
+

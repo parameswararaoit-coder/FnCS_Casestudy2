@@ -17,7 +17,7 @@ class ProductResourceValidationTest {
                 .when()
                 .post("/product")
                 .then()
-                .statusCode(422);
+                .statusCode(409);
     }
 
     @Test
@@ -28,6 +28,6 @@ class ProductResourceValidationTest {
                 .when()
                 .put("/product/1")
                 .then()
-                .statusCode(422);
+                .statusCode(409);
     }
 }

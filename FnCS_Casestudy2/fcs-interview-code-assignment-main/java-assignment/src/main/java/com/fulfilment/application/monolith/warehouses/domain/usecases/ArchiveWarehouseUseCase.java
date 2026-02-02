@@ -1,5 +1,7 @@
 package com.fulfilment.application.monolith.warehouses.domain.usecases;
 
+import com.fulfilment.application.monolith.warehouses.domain.exception.WarehouseAlreadyArchivedException;
+import com.fulfilment.application.monolith.warehouses.domain.exception.WarehouseNotProvidedException;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
@@ -19,14 +21,17 @@ public class ArchiveWarehouseUseCase implements ArchiveWarehouseOperation {
 
     @Override
     public void archive(Warehouse warehouse) {
+
         if (warehouse == null) {
-            throw new WebApplicationException("Warehouse was not provided.", 422);
+            throw new WarehouseNotProvidedException();
         }
+
         if (warehouse.archivedAt != null) {
-            throw new WebApplicationException("Warehouse is already archived.", 409);
+            throw new WarehouseAlreadyArchivedException();
         }
 
         warehouse.archivedAt = LocalDateTime.now();
         warehouseStore.update(warehouse);
     }
+
 }
